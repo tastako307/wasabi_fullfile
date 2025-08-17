@@ -131,90 +131,39 @@ pub fn hlt() {
 
 #[no_mangle]
 fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
-    // let efi_graphics_output_protocol = locate_graphic_protocol(efi_system_table).unwrap();
-    // let vram_addr = efi_graphics_output_protocol.mode.frame_buffer_base;
-    // let vram_byte_size = efi_graphics_output_protocol.mode.frame_buffer_size;
-    // let vram = unsafe {
-    //     slice::from_raw_parts_mut(vram_addr as *mut u32, vram_byte_size / size_of::<u32>())
-    // };
-    // for e in vram {
-    //     *e = 0xffffff;
-    // }
+    // Initialize the console output
     let mut vram = init_vram(efi_system_table).expect("init_vram failed");
-    // for y in 0..vram.height{
-    //     for x in 0..vram.width{
-    //         if let Some(pixel) = vram.pixel_at_mut(x,y) {
-    //             *pixel = 0x00ff00;
-    //         }
-    //     }
-    // }
-    // for y in 0..vram.height / 2{
-    //     for x in 0..vram.width / 2 {
-    //         if let Some(pixel) = vram.pixel_at_mut(x, y) {
-    //             *pixel = 0xff0000;
-    //         }
-    //     }
-    // }
-    //println!("HelloWorld");
     let vw = vram.width;
     let vh = vram.height;
     fill_rect(&mut vram, 0x000000, 0,0, vw, vh).expect("fill rect failed");
-    fill_rect(&mut vram, 0xff0000, 32, 32, 32, 32).expect("fill rect failed");
-    fill_rect(&mut vram, 0x00ff00, 64, 64, 64, 64).expect("fill rect failed");
-    fill_rect(&mut vram, 0x0000ff, 128,128,128,128).expect("fill rect failed");
+    // fill_rect(&mut vram, 0xff0000, 32, 32, 32, 32).expect("fill rect failed");
+    // fill_rect(&mut vram, 0x00ff00, 64, 64, 64, 64).expect("fill rect failed");
+    // fill_rect(&mut vram, 0x0000ff, 128,128,128,128).expect("fill rect failed");
 
-    for i in 0..256 {
-        let _ = draw_point(&mut vram, 0x010101 * i as u32, i,i);
-    }
-    let grid_size: i64 = 32;
-    let rect_size: i64 = grid_size* 8;
-    for i in (0..rect_size).step_by(grid_size as usize) {
-        let _ = draw_line(&mut vram, 0xff0000,0,i, rect_size, i);
-        let _ = draw_line(&mut vram, 0xff0000,i,0,i,rect_size); 
-    }
-    let cx= rect_size/ 2;
-    let cy= rect_size/2;
-    for i in (0..rect_size).step_by(grid_size as usize) {
-        let _ = draw_line(&mut vram, 0xffff00, cx,cy,0,i);
-        let _ = draw_line(&mut vram, 0x00ffff, cx,cy,i,0);
-        let _ = draw_line(&mut vram, 0xff00ff,cx,cy, rect_size, i);
-        let _ = draw_line(&mut vram, 0xffffff,cx, cy, i, rect_size); 
-    }
-    //     let font_a = "
-    // ........
-    // ...**...
-    // ...**...
-    // ...**...
-    // ...**...
-    // ..*..*..
-    // ..*..*..
-    // ..*..*..
-    // ..*..*..
-    // .******.
-    // .*....*.
-    // .*....*.
-    // .*....*.
-    // ***..***
-    // ........
-    // ........
-    // ";
-
-
-    for (i,c) in "ABCDEF".chars().enumerate() {
-        draw_font_fg(&mut vram,i as i64* 16 +256,i as i64 *16, 0xffffff, c)
-    }
-
-    // for (y,row) in font_a.trim().split('\n').enumerate(){
-    //     for (x,pixel) in row.chars().enumerate(){
-    //         let color= match pixel{
-    //           '*' => 0xffffff,
-    //             _ => continue,
-
-    //         };
-    //         let _ =draw_point(&mut vram, color, x as i64,y as i64);
-    //     }
+    // for i in 0..256 {
+    //     let _ = draw_point(&mut vram, 0x010101 * i as u32, i,i);
     // }
-    draw_str_fg(&mut vram, 256,256,0xffffff,"Hello, World!");
+    // let grid_size: i64 = 32;
+    // let rect_size: i64 = grid_size* 8;
+    // for i in (0..rect_size).step_by(grid_size as usize) {
+    //     let _ = draw_line(&mut vram, 0xff0000,0,i, rect_size, i);
+    //     let _ = draw_line(&mut vram, 0xff0000,i,0,i,rect_size); 
+    // }
+    // let cx= rect_size/ 2;
+    // let cy= rect_size/2;
+    // for i in (0..rect_size).step_by(grid_size as usize) {
+    //     let _ = draw_line(&mut vram, 0xffff00, cx,cy,0,i);
+    //     let _ = draw_line(&mut vram, 0x00ffff, cx,cy,i,0);
+    //     let _ = draw_line(&mut vram, 0xff00ff,cx,cy, rect_size, i);
+    //     let _ = draw_line(&mut vram, 0xffffff,cx, cy, i, rect_size); 
+    // }
+
+    // for (i,c) in "ABCDEF".chars().enumerate() {
+    //     draw_font_fg(&mut vram,i as i64* 16 +256,i as i64 *16, 0xffffff, c)
+    // }
+
+    // draw_str_fg(&mut vram, 256,256,0xffffff,"Hello, World!");
+    draw_test_pattern(&mut vram);
     let mut w= VramTextWriter::new(&mut vram);
     for i in 0..4{
         writeln!(w, "i = {i}").unwrap();
@@ -224,14 +173,40 @@ fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
                             .boot_services
                             .get_memory_map(&mut memory_map);
     writeln!(w, "{status:?}").unwrap();
+    let mut total_memory_pages = 0; 
     for e in memory_map.iter(){
+        if e.memory_type != EfiMemoryType:: CONVENTIONAL_MEMORY {
+            continue;
+        }
+        total_memory_pages += e.number_of_pages;
         writeln!(w, "{e:?}").unwrap();
     }
+    let total_memory_bytes = total_memory_pages * 4096 / 1024/ 1024;
+    writeln!(w, "Total Memory: {total_memory_bytes} MiB").unwrap();
     loop {
         hlt()
     }
 }
 
+fn draw_test_pattern<T: Bitmap>(buf: &mut T){
+    let w = 128;
+    let left = buf.width() -w-1;
+    let colors = [0x000000, 0xff0000, 0x00ff00, 0x0000ff];
+    let h = 64;
+    for(i,c) in colors.iter().enumerate() {
+        let y = i as i64 *h;
+        fill_rect(buf, *c, left, y,h, h).expect("fill rect failed");
+        fill_rect(buf, *c, left + h,y,h,h).expect("fill rect failed");
+    }
+    let points =[(0,0),(0,w),(w,0),(w,w)];
+    for (x0,y0) in points.iter() {
+        for (x1,y1) in points.iter(){
+            let _ = draw_line(buf, 0xffffff, left+ *x0, *y0, left + *x1, *y1);
+        }
+    }
+    draw_str_fg(buf, left, h * colors.len() as i64, 0x00ff00, "0123456789");
+    draw_str_fg(buf, left, h * colors.len() as i64 + 16, 0x00ff00, "ABCDEF");
+}
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
