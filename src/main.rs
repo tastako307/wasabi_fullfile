@@ -386,28 +386,12 @@ fn lookup_font(c: char) -> Option<[[char;8];16]> {
     None
 }
 
-fn draw_font_fg<T: Bitmap>(buf: &mut T, x:i64, y:i64, color: u32,c:char){
-//     if let Ok(_c) = u8::try_from(c){
-//         let font_a = "
-// ........
-// ...**...
-// ...**...
-// ...**...
-// ...**...
-// ..*..*..
-// ..*..*..
-// ..*..*..
-// ..*..*..
-// .******.
-// .*....*.
-// .*....*.
-// .*....*.
-// ***..***
-// ........
-// ........
-// ";
-//         for (dy,row) in font_a.trim().split('\n').enumerate(){
-//             for (dx,pixel)in row.chars().enumerate() {
+fn draw_font_fg<T: Bitmap>(buf: &mut T,
+                            x:i64,
+                            y:i64, 
+                            color: u32,
+                            c:char
+) {
     if let Some(font) = lookup_font(c) {
         for (dy, row) in font.iter().enumerate() {
             for (dx, pixel) in row.iter().enumerate() {
@@ -421,7 +405,12 @@ fn draw_font_fg<T: Bitmap>(buf: &mut T, x:i64, y:i64, color: u32,c:char){
     }
 }
 
-fn draw_str_fg<T: Bitmap>(buf: &mut T, x: i64, y:i64, color: u32,s: &str){
+fn draw_str_fg<T: Bitmap>(buf: &mut T,
+                            x: i64, 
+                            y:i64, 
+                            color: u32,
+                            s: &str
+){
     for (i,c) in s.chars().enumerate() {
         draw_font_fg(buf, x+i as i64* 8 ,y, color, c)
     }
