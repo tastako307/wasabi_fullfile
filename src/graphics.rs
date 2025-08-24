@@ -1,4 +1,4 @@
-use create::result::Result;
+use crate::result::Result;
 use core::cmp::min;
 
 pub trait Bitmap {
@@ -6,7 +6,7 @@ pub trait Bitmap {
     fn pixels_per_line(&self) -> i64;
     fn width(&self) -> i64;
     fn height(&self) -> i64;
-    fn buf_mut(&mut self) -> &mut [u8];
+    fn buf_mut(&mut self) -> *mut u8;
     /// # Safety
     /// returned pointer id valid as long as the given coordinates are valid,
     /// which means that passing is_in_*_range tests.
@@ -50,10 +50,23 @@ fn draw_point<T: Bitmap>(
     x: i64,
     y: i64,
 ) -> Result<()> {
+    *(buf.pixel_at_mut(x,y).ok_or("Out of Range")?) = color;
+    Ok(())
+}
+
+
+pub fn fill_rect<T: Bitmap>(
+    buf: &mut T,
+    color: u32,
+    px: i64,
+    py: i64,
+    w: i64,
+    h: i64,
+) -> Result<()>{
     if !buf.is_in_x_range(px) 
         || !buf.is_in_y_range(py)
         || !buf.is_in_x_range(px + w - 1)
-        || !buf.is_in_y_range(py + y - 1)
+        || !buf.is_in_y_range(py + h - 1)
     {
         return Err("out of range");
     }
@@ -70,13 +83,12 @@ fn draw_point<T: Bitmap>(
 fn calc_slope_point(
     da: i64,
     db: i64,
-    db: i64,
     ia: i64
 ) -> Option<i64> {
     if da < db {
         None
     } else if da ==0 {
-
+        Some(0)
     } else if (0..=da).contains(&ia) {
         Some((2 * db * ia + da) / da / 2)  
     } else {
@@ -147,7 +159,7 @@ fn lookup_font(c: char) -> Option<[[char;8];16]> {
     None
 }
 
-fn draw_font_fg<T: Bitmap>(buf: &mut T,
+pub fn draw_font_fg<T: Bitmap>(buf: &mut T,
                             x:i64,
                             y:i64, 
                             color: u32,
@@ -166,7 +178,7 @@ fn draw_font_fg<T: Bitmap>(buf: &mut T,
     }
 }
 
-fn draw_str_fg<T: Bitmap>(buf: &mut T,
+pub fn draw_str_fg<T: Bitmap>(buf: &mut T,
                             x: i64, 
                             y:i64, 
                             color: u32,
@@ -177,7 +189,7 @@ fn draw_str_fg<T: Bitmap>(buf: &mut T,
     }
 }
 
-fn draw_test_pattern<T: Bitmap>(buf: &mut T){
+pub fn draw_test_pattern<T: Bitmap>(buf: &mut T){
     let w = 128;
     let left = buf.width() -w-1;
     let colors = [0x000000, 0xff0000, 0x00ff00, 0x0000ff];
