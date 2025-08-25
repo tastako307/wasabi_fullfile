@@ -1,7 +1,7 @@
 #!/bin/bash -e
 PROJ_ROOT="$(dirname $(dirname ${BASH_SOURCE:-$0}))"
 cd "${PROJ_ROOT}"
-
+set +e
 PATH_TO_EFI="$1"
 rm -rf mnt
 mkdir -p mnt/EFI/BOOT/
@@ -11,3 +11,14 @@ qemu-system-x86_64 \
     -bios third_party/ovmf/RELEASEX64_OVMF.fd \
     -drive format=raw,file=fat::rw:mnt \
     -device isa-debug-exit,iobase=0xf4,iosize=0x01
+RETCODE=$?
+set -e
+if [ $RETCODE -eq 0 ]; then
+    exit 0
+elif [ $RETCODE -eq 3 ]; then
+    printf "\nPass\n"
+    exit 0
+else
+    printf "\nFail: QEMU returned $RETCODE\n"
+    exit 1
+fi

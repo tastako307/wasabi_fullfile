@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(offset_of)]
 
-use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 use core::writeln;
@@ -10,6 +9,8 @@ use wasabi::graphics::draw_font_fg;
 use wasabi::graphics::draw_test_pattern;
 use wasabi::graphics::fill_rect;
 use wasabi::graphics::Bitmap;
+use wasabi::qemu::exit_qemu;
+use wasabi::qemu::QemuExitCode;
 use wasabi::result::Result;
 use wasabi::uefi::exit_from_efi_boot_services;
 use wasabi::uefi::init_vram;
@@ -18,15 +19,13 @@ use wasabi::uefi::EfiMemoryType;
 use wasabi::uefi::EfiSystemTable;
 use wasabi::uefi::MemoryMapHolder;
 use wasabi::uefi::VramTextWriter;
+use wasabi::x86::hlt;
 
 // Rustコンパイラくんに明示的にUseせよと怒られたので仕方なく
 // use wasabi::uefi::EfiBootServicesTable;
 // use wasabi::uefi::EfiGuid;
 // use wasabi::uefi::EfiStatus;
 
-pub fn hlt() {
-    unsafe { asm!("hlt") }
-}
 
 #[no_mangle]
 fn efi_main(image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
@@ -68,6 +67,7 @@ fn efi_main(image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    exit_qemu(QemuExitCode::Fail);
     loop {
         hlt()
     }
